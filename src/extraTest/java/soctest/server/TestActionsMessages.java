@@ -26,10 +26,8 @@ import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Vector;
@@ -60,7 +58,6 @@ import soc.game.SOCRoutePiece;
 import soc.game.SOCSettlement;
 import soc.game.SOCShip;
 import soc.game.SOCTradeOffer;
-import soc.message.SOCCancelBuildRequest;
 import soc.message.SOCChoosePlayer;
 import soc.message.SOCNewGameWithOptions;
 import soc.server.SOCGameHandler;
@@ -1179,9 +1176,8 @@ public class TestActionsMessages
     }
 
     /**
-     * Tests playing dev cards, and canceling playing a Knight card which changed Largest Army.
+     * Tests playing dev cards.
      * @see #testBuyDevCard()
-     * @see #testPlayCancelKnightDevCard()
      */
     @Test
     public void testPlayDevCards()
@@ -1497,47 +1493,24 @@ public class TestActionsMessages
         }
 
         cliPl.setPlayedDevCard(false);
+        tcli.playDevCard(ga, SOCDevCardConstants.KNIGHT);
 
-        // play soldier card, cancel during placement, play again to actually place:
-        for (int testedCancel = 0; testedCancel <= 1; ++testedCancel)
-        {
-            tcli.playDevCard(ga, SOCDevCardConstants.KNIGHT);
+        try { Thread.sleep(60); }
+        catch(InterruptedException e) {}
+        assertTrue(cliPl.hasPlayedDevCard());
+        assertEquals(3, cliPl.getNumKnights());
+        expectedCardsPlayed.add(SOCDevCardConstants.KNIGHT);
+        assertEquals(expectedCardsPlayed, cliPl.getDevCardsPlayed());
+        assertEquals(6, cliPl.getPublicVP());
+        assertEquals(cliPl, ga.getPlayerWithLargestArmy());
+        assertEquals(SOCGame.WAITING_FOR_ROBBER_OR_PIRATE, ga.getGameState());
+        assertTrue(ga.isPlacingRobberForKnightCard());  // waiting for choice because of knight card
+        tcli.choosePlayer(ga, SOCChoosePlayer.CHOICE_MOVE_ROBBER);
 
-            try { Thread.sleep(60); }
-            catch(InterruptedException e) {}
-            assertTrue(cliPl.hasPlayedDevCard());
-            assertEquals(3, cliPl.getNumKnights());
-            expectedCardsPlayed.add(SOCDevCardConstants.KNIGHT);
-            assertEquals(expectedCardsPlayed, cliPl.getDevCardsPlayed());
-            assertEquals(6, cliPl.getPublicVP());
-            assertEquals(cliPl, ga.getPlayerWithLargestArmy());
-            assertEquals(SOCGame.WAITING_FOR_ROBBER_OR_PIRATE, ga.getGameState());
-            assertTrue(ga.isPlacingRobberForKnightCard());  // waiting for choice because of knight card
-            tcli.choosePlayer(ga, SOCChoosePlayer.CHOICE_MOVE_ROBBER);
-
-            try { Thread.sleep(60); }
-            catch(InterruptedException e) {}
-            assertEquals(SOCGame.PLACING_ROBBER, ga.getGameState());
-            assertTrue(ga.isPlacingRobberForKnightCard());  // currently placing it
-
-            if (testedCancel == 0)
-            {
-                // cancel; related stats should revert
-                tcli.cancelBuildRequest(ga, SOCCancelBuildRequest.CARD);
-
-                try { Thread.sleep(60); }
-                catch(InterruptedException e) {}
-                assertFalse(cliPl.hasPlayedDevCard());
-                assertEquals(2, cliPl.getNumKnights());
-                assertEquals(SOCDevCardConstants.KNIGHT, expectedCardsPlayed.remove(expectedCardsPlayed.size() - 1).intValue());
-                assertEquals(expectedCardsPlayed, cliPl.getDevCardsPlayed());
-                assertEquals(4, cliPl.getPublicVP());
-                assertEquals(null, ga.getPlayerWithLargestArmy());
-                assertEquals(SOCGame.PLAY1, ga.getGameState());
-            }
-        }
-
-        // now actually place instead of cancel:
+        try { Thread.sleep(60); }
+        catch(InterruptedException e) {}
+        assertEquals(SOCGame.PLACING_ROBBER, ga.getGameState());
+        assertTrue(ga.isPlacingRobberForKnightCard());  // currently placing it
         tcli.moveRobber(ga, cliPl, ROBBER_HEX);
 
         try { Thread.sleep(60); }
@@ -1562,24 +1535,6 @@ public class TestActionsMessages
                 {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " must choose to move the robber or the pirate."},
                 {"all:SOCGameState:", "|state=33"},
                 {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " will move the robber."},
-                // cancel card
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " cancelled the Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=ADD_OLD|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=LOSE|elementType=15|amount=1"},
-                {"all:SOCGameElements:", "|e5=-1"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=0"},
-                {"all:SOCGameState:", "|state=20"},  // PLAY1
-                // play again (same as start of sequence)
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " played a Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=PLAY|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=1"},  // PLAYED_DEV_CARD_FLAG
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=GAIN|elementType=15|amount=1"},  // NUMKNIGHTS
-                {"all:SOCGameElements:", "|e5=3"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCGameState:", "|state=54"},
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " must choose to move the robber or the pirate."},
-                {"all:SOCGameState:", "|state=33"},
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " will move the robber."},
-                // place instead of cancel
                 {"all:SOCMoveRobber:", "|playerNumber=3|coord=703"},
                 {
                     (observabilityMode != 2) ? "p3:SOCRobberyResult:" : "all:SOCRobberyResult:",
@@ -1632,400 +1587,6 @@ public class TestActionsMessages
                 compares.append("   ");
             compares.append("Move Robber: Message mismatch: ");
             compares.append(comparesMoveRobber);
-        }
-
-        if (compares.length() > 0)
-        {
-            compares.insert(0, "For test " + CLIENT_NAME + ": ");
-            System.err.println(compares);
-            fail(compares.toString());
-        }
-    }
-
-    /**
-     * Tests different cases and side-effects of playing and canceling a Knight card.
-     * @see #testPlayDevCards()
-     * @since 2.7.00
-     */
-    @Test
-    public void testPlayCancelKnightDevCard()
-        throws IOException
-    {
-        assertNotNull(srv);
-
-        for (int observabilityMode = 0; observabilityMode <= 2; ++observabilityMode)
-        {
-            testOne_PlayCancelKnightDevCard(observabilityMode, false, false);
-            testOne_PlayCancelKnightDevCard(observabilityMode, false, true);
-            testOne_PlayCancelKnightDevCard(observabilityMode, true, false);
-            testOne_PlayCancelKnightDevCard(observabilityMode, true, true);
-        }
-    }
-
-    private void testOne_PlayCancelKnightDevCard
-        (final int observabilityMode, final boolean clientAsRobot, final boolean othersAsRobot)
-        throws IOException
-    {
-        // unique client nickname, in case tests run in parallel
-        final String CLIENT_NAME, BOT_CLI_NAME, OBSERVER_NAME;
-        final String nameSuffix = observabilityMode + (clientAsRobot ? "_r" : "_h") + (othersAsRobot ? "_r" : "_h");
-        {
-            CLIENT_NAME   = "testPlayCnclKn_" + nameSuffix;
-            BOT_CLI_NAME  = "testPlayCnKnP2_" + nameSuffix;
-            OBSERVER_NAME = "testPlayCnKnOb_" + nameSuffix;
-        }
-
-        final int CLIENT_PN = 3, BOT_PN = 2;
-        final StartedTestGameObjects objs =
-            TestRecorder.connectLoadJoinResumeGame
-                (srv, CLIENT_NAME, BOT_CLI_NAME, BOT_PN, null, true, observabilityMode, clientAsRobot, othersAsRobot);
-        final DisplaylessTesterClient tcli = objs.tcli;
-        // final SavedGameModel sgm = objs.sgm;
-        final SOCGame gaAtSrv = objs.gameAtServer, gaAtCli = tcli.getGame(gaAtSrv.getName()),
-            gaAtBot = objs.tcli2.getGame(gaAtSrv.getName());
-        // final SOCBoardLarge board = (SOCBoardLarge) objs.board;
-        final DisplaylessTesterClient obsCli = TestRecorder.connectObserver(srv, gaAtSrv, OBSERVER_NAME, observabilityMode);
-        final SOCGame gaAtObs = obsCli.getGame(gaAtSrv.getName());
-        final SOCPlayer cliPlAtSrv = objs.clientPlayer, botPlAtSrv = gaAtSrv.getPlayer(BOT_PN),
-            cliPlAtCli = gaAtCli.getPlayer(CLIENT_PN), botPlAtCli = gaAtCli.getPlayer(BOT_PN),
-            cliPlAtBot = gaAtBot.getPlayer(CLIENT_PN), botPlAtBot = gaAtBot.getPlayer(BOT_PN),
-            cliPlAtObs = gaAtObs.getPlayer(CLIENT_PN), botPlAtObs = gaAtObs.getPlayer(BOT_PN);
-
-        final HashMap<String, SOCGame> gameViews = new HashMap<>();
-        gameViews.put("gameAtSrv_" + nameSuffix, gaAtSrv);
-        gameViews.put("gameAtCli_" + nameSuffix, gaAtCli);
-        gameViews.put("gameAtBot_" + nameSuffix, gaAtBot);
-        gameViews.put("gameAtObs_" + nameSuffix, gaAtObs);
-        final HashMap<String, SOCPlayer> cliPlViews = new HashMap<>();
-        cliPlViews.put("cliPlAtSrv_" + nameSuffix, cliPlAtSrv);
-        cliPlViews.put("cliPlAtCli_" + nameSuffix, cliPlAtCli);
-        cliPlViews.put("cliPlAtBot_" + nameSuffix, cliPlAtBot);
-        cliPlViews.put("cliPlAtObs_" + nameSuffix, cliPlAtObs);
-        final HashMap<String, SOCPlayer> botPlViews = new HashMap<>();
-        botPlViews.put("botPlAtSrv_" + nameSuffix, botPlAtSrv);
-        botPlViews.put("botPlAtCli_" + nameSuffix, botPlAtCli);
-        botPlViews.put("botPlAtBot_" + nameSuffix, botPlAtBot);
-        botPlViews.put("botPlAtObs_" + nameSuffix, botPlAtObs);
-
-        assertEquals(CLIENT_PN, cliPlAtSrv.getPlayerNumber());
-        for (Map.Entry<String, SOCGame> eGame : gameViews.entrySet())
-            assertFalse(eGame.getKey(), eGame.getValue().isSeatVacant(BOT_PN));
-
-        final Vector<EventEntry> records = objs.records;
-
-        /* no one -> has it; cancel during placement */
-
-        records.clear();
-        for (Map.Entry<String, SOCGame> eGame : gameViews.entrySet())
-            assertNull(eGame.getKey(), eGame.getValue().getPlayerWithLargestArmy());
-        for (Map.Entry<String, SOCPlayer> eBotPl : botPlViews.entrySet())
-            assertEquals(eBotPl.getKey(), 0, eBotPl.getValue().getNumKnights());
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            assertEquals(desc, 1, cliPl.getNumKnights());
-            assertEquals(desc, 2, cliPl.getPublicVP());
-            cliPl.setNumKnights(2);
-        }
-
-        tcli.playDevCard(gaAtCli, SOCDevCardConstants.KNIGHT);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            final SOCGame ga = cliPl.getGame();
-            assertTrue(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 3, cliPl.getNumKnights());
-            assertEquals(desc, 4, cliPl.getPublicVP());
-            assertEquals(desc, cliPl, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.WAITING_FOR_ROBBER_OR_PIRATE, ga.getGameState());
-            assertTrue(desc, ga.isPlacingRobberForKnightCard());  // waiting for choice because of knight card
-        }
-
-        tcli.choosePlayer(gaAtCli, SOCChoosePlayer.CHOICE_MOVE_ROBBER);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCGame> eGame : gameViews.entrySet())
-        {
-            final String desc = eGame.getKey();
-            final SOCGame ga = eGame.getValue();
-            assertEquals(desc, SOCGame.PLACING_ROBBER, ga.getGameState());
-            assertTrue(desc, ga.isPlacingRobberForKnightCard());  // currently placing it
-        }
-
-        // cancel; related stats should revert
-        tcli.cancelBuildRequest(gaAtCli, SOCCancelBuildRequest.CARD);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            final SOCGame ga = cliPl.getGame();
-            assertFalse(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 2, cliPl.getNumKnights());
-            assertEquals(desc, 2, cliPl.getPublicVP());
-            assertNull(desc, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.PLAY1, ga.getGameState());
-        }
-
-        StringBuilder comparesBuy1 = TestRecorder.compareRecordsToExpected
-            (records, new String[][]
-            {
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " played a Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=PLAY|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=1"},  // PLAYED_DEV_CARD_FLAG
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=GAIN|elementType=15|amount=1"},  // NUMKNIGHTS
-                {"all:SOCGameElements:", "|e5=3"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCGameState:", "|state=54"},
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " must choose to move the robber or the pirate."},
-                {"all:SOCGameState:", "|state=33"},
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " will move the robber."},
-                // cancel card
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " cancelled the Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=ADD_OLD|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=LOSE|elementType=15|amount=1"},
-                {"all:SOCGameElements:", "|e5=-1"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=0"},
-                {"all:SOCGameState:", "|state=20"},  // PLAY1
-            }, false);
-
-        /* no one -> has it; cancel during Choose robber or pirate */
-
-        records.clear();
-        tcli.playDevCard(gaAtCli, SOCDevCardConstants.KNIGHT);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            final SOCGame ga = cliPl.getGame();
-            assertTrue(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 3, cliPl.getNumKnights());
-            assertEquals(desc, 4, cliPl.getPublicVP());
-            assertEquals(desc, cliPl, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.WAITING_FOR_ROBBER_OR_PIRATE, ga.getGameState());
-            assertTrue(desc, ga.isPlacingRobberForKnightCard());  // waiting for choice because of knight card
-        }
-
-        // cancel; related stats should revert
-        tcli.cancelBuildRequest(gaAtCli, SOCCancelBuildRequest.CARD);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            final SOCGame ga = cliPl.getGame();
-            assertFalse(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 2, cliPl.getNumKnights());
-            assertEquals(desc, 2, cliPl.getPublicVP());
-            assertNull(desc, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.PLAY1, ga.getGameState());
-        }
-
-        StringBuilder comparesFirstLA = TestRecorder.compareRecordsToExpected
-            (records, new String[][]
-            {
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " played a Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=PLAY|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=1"},  // PLAYED_DEV_CARD_FLAG
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=GAIN|elementType=15|amount=1"},  // NUMKNIGHTS
-                {"all:SOCGameElements:", "|e5=3"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCGameState:", "|state=54"},
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " must choose to move the robber or the pirate."},
-                // cancel card
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " cancelled the Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=ADD_OLD|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=LOSE|elementType=15|amount=1"},
-                {"all:SOCGameElements:", "|e5=-1"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=0"},
-                {"all:SOCGameState:", "|state=20"},  // PLAY1
-            }, false);
-
-        /* tie player w/ it, unchanged */
-
-        records.clear();
-        for (SOCPlayer botPl : botPlViews.values())
-        {
-            botPl.setNumKnights(3);
-            botPl.getGame().setPlayerWithLargestArmy(botPl);
-        }
-
-        tcli.playDevCard(gaAtCli, SOCDevCardConstants.KNIGHT);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            assertTrue(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 3, cliPl.getNumKnights());
-            assertEquals(desc, 2, cliPl.getPublicVP());
-        }
-        for (Map.Entry<String, SOCPlayer> eBotPl : botPlViews.entrySet())
-        {
-            final String desc = eBotPl.getKey();
-            final SOCPlayer botPl = eBotPl.getValue();
-            final SOCGame ga = botPl.getGame();
-            assertEquals("largest-army player unchanged: " + desc, botPl, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.WAITING_FOR_ROBBER_OR_PIRATE, ga.getGameState());
-            assertTrue(desc, ga.isPlacingRobberForKnightCard());  // waiting for choice because of knight card
-        }
-
-        // cancel; related stats should revert
-        tcli.cancelBuildRequest(gaAtCli, SOCCancelBuildRequest.CARD);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            assertFalse(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 2, cliPl.getNumKnights());
-            assertEquals(desc, 2, cliPl.getPublicVP());
-        }
-        for (Map.Entry<String, SOCPlayer> eBotPl : botPlViews.entrySet())
-        {
-            final String desc = eBotPl.getKey();
-            final SOCPlayer botPl = eBotPl.getValue();
-            final SOCGame ga = botPl.getGame();
-            assertEquals(desc, botPl, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.PLAY1, ga.getGameState());
-        }
-
-        StringBuilder comparesTieLA = TestRecorder.compareRecordsToExpected
-            (records, new String[][]
-            {
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " played a Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=PLAY|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=1"},  // PLAYED_DEV_CARD_FLAG
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=GAIN|elementType=15|amount=1"},  // NUMKNIGHTS
-                {"all:SOCGameState:", "|state=54"},
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " must choose to move the robber or the pirate."},
-                // cancel card
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " cancelled the Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=ADD_OLD|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=LOSE|elementType=15|amount=1"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=0"},
-                {"all:SOCGameState:", "|state=20"},  // PLAY1
-            }, false);
-
-        /* take over LA; if number of knights was 3-way tie, ensure proper person has it after undo (middle pl, vs lowest or highest tied player number */
-
-        records.clear();
-        for (SOCPlayer cliPl : cliPlViews.values())
-            cliPl.setNumKnights(3);
-        for (SOCPlayer botPl : botPlViews.values())
-        {
-            final SOCGame ga = botPl.getGame();
-            botPl.setNumKnights(3);
-            ga.getPlayer(1).setNumKnights(3);
-            ga.setPlayerWithLargestArmy(botPl);
-        }
-
-        tcli.playDevCard(gaAtCli, SOCDevCardConstants.KNIGHT);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            final SOCGame ga = cliPl.getGame();
-            assertTrue(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 4, cliPl.getNumKnights());
-            assertEquals(desc, 4, cliPl.getPublicVP());
-            assertEquals(desc, cliPl, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.WAITING_FOR_ROBBER_OR_PIRATE, ga.getGameState());
-            assertTrue(desc, ga.isPlacingRobberForKnightCard());  // waiting for choice because of knight card
-        }
-
-        // cancel; related stats should revert
-        tcli.cancelBuildRequest(gaAtCli, SOCCancelBuildRequest.CARD);
-
-        try { Thread.sleep(60); }
-        catch(InterruptedException e) {}
-        for (Map.Entry<String, SOCPlayer> eCliPl : cliPlViews.entrySet())
-        {
-            final String desc = eCliPl.getKey();
-            final SOCPlayer cliPl = eCliPl.getValue();
-            assertFalse(desc, cliPl.hasPlayedDevCard());
-            assertEquals(desc, 3, cliPl.getNumKnights());
-            assertEquals(desc, 2, cliPl.getPublicVP());
-        }
-        for (Map.Entry<String, SOCPlayer> eBotPl : botPlViews.entrySet())
-        {
-            final String desc = eBotPl.getKey();
-            final SOCPlayer botPl = eBotPl.getValue();
-            final SOCGame ga = botPl.getGame();
-            assertEquals(desc, botPl, ga.getPlayerWithLargestArmy());
-            assertEquals(desc, SOCGame.PLAY1, ga.getGameState());
-        }
-
-        StringBuilder comparesTakeTiedLA = TestRecorder.compareRecordsToExpected
-            (records, new String[][]
-            {
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " played a Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=PLAY|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=1"},  // PLAYED_DEV_CARD_FLAG
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=GAIN|elementType=15|amount=1"},  // NUMKNIGHTS
-                {"all:SOCGameElements:", "|e5=3"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCGameState:", "|state=54"},
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " must choose to move the robber or the pirate."},
-                // cancel card
-                {"all:SOCGameServerText:", "|text=" + CLIENT_NAME + " cancelled the Soldier card."},
-                {"all:SOCDevCardAction:", "|playerNum=3|actionType=ADD_OLD|cardType=9"},
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=LOSE|elementType=15|amount=1"},
-                {"all:SOCGameElements:", "|e5=2"},  // LARGEST_ARMY_PLAYER
-                {"all:SOCPlayerElement:", "|playerNum=3|actionType=SET|elementType=19|amount=0"},
-                {"all:SOCGameState:", "|state=20"},  // PLAY1
-            }, false);
-
-        /* leave game, consolidate results */
-
-        srv.destroyGameAndBroadcast(gaAtSrv.getName(), null);
-        tcli.destroy();
-        objs.tcli2.destroy();;
-        obsCli.destroy();;
-
-        StringBuilder compares = new StringBuilder();
-        if (comparesBuy1 != null)
-        {
-            compares.append("Buy 1st soldier: Message mismatch: ");
-            compares.append(comparesBuy1);
-        }
-        if (comparesFirstLA != null)
-        {
-            if (compares.length() > 0)
-                compares.append("   ");
-            compares.append("First LA: Message mismatch: ");
-            compares.append(comparesFirstLA);
-        }
-        if (comparesTieLA != null)
-        {
-            if (compares.length() > 0)
-                compares.append("   ");
-            compares.append("Tie LA: Message mismatch: ");
-            compares.append(comparesTieLA);
-        }
-        if (comparesTakeTiedLA != null)
-        {
-            if (compares.length() > 0)
-                compares.append("   ");
-            compares.append("TakeTiedLA: Message mismatch: ");
-            compares.append(comparesTakeTiedLA);
         }
 
         if (compares.length() > 0)

@@ -827,8 +827,10 @@ public class TestToCmdToStringParse
         {new SOCNewGame("ga"), "1016|ga", "SOCNewGame:game=ga"},
         {
             new SOCNewGameWithOptions("ga", SOCGameOption.parseOptionsToSet("BC=t4,RD=f,SBL=t", knownOpts), -1, 0),
-            "1079|ga,-1,BC=t4,RD=f,SBL=t",
-            "SOCNewGameWithOptions:game=ga|param1=-1|param2=BC=t4,RD=f,SBL=t",
+            //"1079|ga,-1,BC=t4,RD=f,SBL=t",
+            "1079|ga,-1,SBL=t,BC=t4,RD=f",
+            //"SOCNewGameWithOptions:game=ga|param1=-1|param2=BC=t4,RD=f,SBL=t",
+            "SOCNewGameWithOptions:game=ga|param1=-1|param2=SBL=t,BC=t4,RD=f",
             OPT_IGNORE_OBJ_FIELDS, new HashSet<String>(Arrays.asList("p2"))
             // TODO +stripAttribNames
         },

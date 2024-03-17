@@ -1,7 +1,7 @@
 /**
  * Java Settlers - An online multiplayer version of the game Settlers of Catan
  * Copyright (C) 2003  Robert S. Thomas <thomas@infolab.northwestern.edu>
- * Portions of this file Copyright (C) 2007-2024 Jeremy D Monin <jeremy@nand.net>
+ * Portions of this file Copyright (C) 2007-2023 Jeremy D Monin <jeremy@nand.net>
  * Portions of this file Copyright (C) 2012 Paul Bilnoski <paul@bilnoski.net>
  *
  * This program is free software; you can redistribute it and/or
@@ -3363,10 +3363,10 @@ public class SOCDisplaylessPlayerClient implements Runnable
     }
 
     /**
-     * request to cancel building something or playing a dev card
+     * request to cancel building something
      *
      * @param ga     the game
-     * @param piece  the type of piece from SOCPlayingPiece, or {@link SOCCancelBuildRequest#CARD}
+     * @param piece  the type of piece from SOCPlayingPiece
      */
     public void cancelBuildRequest(SOCGame ga, int piece)
     {
@@ -3589,9 +3589,6 @@ public class SOCDisplaylessPlayerClient implements Runnable
      * chose whether to move the robber or the pirate,
      * or (game state {@link SOCGame#WAITING_FOR_ROB_CLOTH_OR_RESOURCE})
      * chose whether to steal a resource or cloth.
-     *<P>
-     * If choice is from playing a {@link SOCDevCardConstants#KNIGHT} card, to cancel the card
-     * call {@link #cancelBuildRequest(SOCGame, int) cancelBuildRequest}({@link SOCCancelBuildRequest#CARD}) instead.
      *
      * @param ga  the game
      * @param ch  the player number,

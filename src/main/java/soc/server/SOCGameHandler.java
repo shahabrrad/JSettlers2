@@ -4279,6 +4279,7 @@ public class SOCGameHandler extends GameHandler
         int robber;
 
         board = ga.getBoard();
+         System.out.println(board);
         final int bef = board.getBoardEncodingFormat();
         if (bef == SOCBoard.BOARD_ENCODING_6PLAYER ||
             bef == SOCBoard.BOARD_ENCODING_ORIGINAL)

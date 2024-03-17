@@ -1,6 +1,6 @@
 /**
  * Java Settlers - An online multiplayer version of the game Settlers of Catan
- * This file copyright (C) 2019-2024 Jeremy D Monin <jeremy@nand.net>
+ * This file copyright (C) 2019-2023 Jeremy D Monin <jeremy@nand.net>
  * Extracted in 2019 from SOCPlayerClient.java, so:
  * Portions of this file Copyright (C) 2003  Robert S. Thomas <thomas@infolab.northwestern.edu>
  * Portions of this file Copyright (C) 2007-2019 Jeremy D Monin <jeremy@nand.net>
@@ -398,13 +398,9 @@ import soc.message.SOCUndoPutPiece;
     }
 
     /**
-     * When asked whether to move robber or pirate, the user is choosing to move the robber.
-     *<P>
-     * If choice is from playing a {@link SOCDevCardConstants#KNIGHT} card, to cancel the card
-     * call {@link #cancelBuildRequest(SOCGame, int) cancelBuildRequest}({@link SOCCancelBuildRequest#CARD}) instead.
+     * The user is reacting to the move robber request.
      *
      * @param ga  the game
-     * @see #choosePirate(SOCGame)
      */
     public void chooseRobber(SOCGame ga)
     {
@@ -412,13 +408,9 @@ import soc.message.SOCUndoPutPiece;
     }
 
     /**
-     * When asked whether to move robber or pirate, the user is choosing to move the pirate.
-     *<P>
-     * If choice is from playing a {@link SOCDevCardConstants#KNIGHT} card, to cancel the card
-     * call {@link #cancelBuildRequest(SOCGame, int) cancelBuildRequest}({@link SOCCancelBuildRequest#CARD}) instead.
+     * The user is reacting to the move pirate request.
      *
      * @param ga  the game
-     * @see #chooseRobber(SOCGame)
      */
     public void choosePirate(SOCGame ga)
     {

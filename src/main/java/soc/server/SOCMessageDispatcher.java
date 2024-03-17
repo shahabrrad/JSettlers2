@@ -126,6 +126,7 @@ import soc.server.genericServer.Server;
     public void dispatch(final SOCMessage mes, final Connection con)
         throws IllegalStateException
     {
+        // System.out.println("Message recieved in dispatcher: " + mes);
         if (srv == null)
             throw new IllegalStateException("Not ready to dispatch: call setServer first");
         if (mes == null)

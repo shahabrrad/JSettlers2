@@ -4353,6 +4353,7 @@ public class SOCServer extends Server
      */
     public void messageToPlayer(Connection c, final String eventGameName, final int eventPN, SOCMessage mes)
     {
+        System.out.println("sending message: " + mes);
         if ((c == null) || (mes == null))
             return;
 

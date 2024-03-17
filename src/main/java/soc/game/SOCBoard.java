@@ -883,6 +883,7 @@ public abstract class SOCBoard implements Serializable, Cloneable
             final int[] numPath = numPaths[ Math.abs(rand.nextInt() % numPaths.length) ];
             final int[] numbers = is6player ? SOCBoard6p.makeNewBoard_diceNums_v2 : SOCBoard4p.makeNewBoard_diceNums_v1;
             makeNewBoard_placeHexes(landHex, numPath, numbers, opt_breakClumps);
+
         }
 
         // copy and shuffle the ports, and check vs game option BC
@@ -912,6 +913,95 @@ public abstract class SOCBoard implements Serializable, Cloneable
                 placePort(ptype, SOCBoard4p.PORTS_HEXNUM_V1[i], SOCBoard4p.PORTS_FACING_V1[i], nodes[0], nodes[1]);
             }
         }
+        // System.out.println("hexlayout is " + hexLayout);
+
+        for (int i = 0; i < hexLayout.length; i++) {
+    int resourceType = hexLayout[i];
+    String resourceName = "";
+    switch (resourceType) {
+        case CLAY_HEX:
+            resourceName = "Clay";
+            break;
+        case ORE_HEX:
+            resourceName = "Ore";
+            break;
+        case SHEEP_HEX:
+            resourceName = "Sheep";
+            break;
+        case WHEAT_HEX:
+            resourceName = "Wheat";
+            break;
+        case WOOD_HEX:
+            resourceName = "Wood";
+            break;
+        case DESERT_HEX:
+            resourceName = "Desert";
+            break;
+        // default:
+        //     resourceName = getPortTypeFromNodeCoord(resourceType);
+        // Add cases for other types of resources
+    }
+    // System.out.println("resourceType: "+ resourceType);
+    int port_type = getPortTypeFromHexType(resourceType);
+    // getPortDescForType(port_type);
+    String port_name = "";
+    
+        switch (port_type) {
+        case CLAY_HEX:
+            port_name = "Clay";
+            break;
+        case ORE_HEX:
+            port_name = "Ore";
+            break;
+        case SHEEP_HEX:
+            port_name = "Sheep";
+            break;
+        case WHEAT_HEX:
+            port_name = "Wheat";
+            break;
+        case WOOD_HEX:
+            port_name = "Wood";
+            break;
+        case DESERT_HEX:
+            port_name = "Desert";
+            break;
+        // case MISC_PORT:
+        //     port_name = "3:1 default";
+        //     break;
+        default:
+            port_name = "Water";
+        // Add cases for other types of resources
+    }
+    if (resourceName == ""){
+        if (port_name == "Water"){
+            if (resourceType >= 8 && resourceType <= 12){
+                System.out.println("Tile " + (i) + ": 3to1 Port");
+            }else{
+                System.out.println("Tile " + (i) + ": empty (Water)");
+            }
+        }else{
+            System.out.println("Tile " + (i) + ": " + port_name + " Port");
+        }
+    }else{
+        System.out.println("Tile " + (i) + ": " + resourceName + " number: " + numberLayout[i]);
+    // System.out.println(numberLayout[i]);
+    }
+    
+
+}
+System.out.println(portsLayout);
+// for (int i = MISC_PORT; i <= WOOD_PORT; i++) {
+//     List<Integer> portLocations = ports[i];
+//     // Each port type will have at least 2 node coords because each port touches 2 nodes
+//     for (int j = 0; j < portLocations.size(); j += 2) {
+//         int node1 = portLocations.get(j);
+//         int node2 = portLocations.get(j + 1);
+//         System.out.println(node1);
+//         System.out.println(node2);
+//         // Now you can print the port type (i), and its node coordinates (node1, node2)
+//         // Note: Convert the port type (i) to the actual resource type name as needed
+//     }
+// }
 
     }
 
